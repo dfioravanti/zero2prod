@@ -15,6 +15,7 @@ name = "zero2prod"
 
 [dependencies]
 actix-web = "4.0.0-beta.4"
+config = "0.10.1"
 serde = { version = "1", features = ["derive"] }
 
 [dependencies.sqlx]
