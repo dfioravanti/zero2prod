@@ -1,5 +1,5 @@
 use std::net::TcpListener;
-use zero2prod::run;
+use zero2prod::startup::run;
 
 /// Spawns the app as a background task using a random port.
 /// This is done to avoid clashing with already existing applications.
