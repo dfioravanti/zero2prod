@@ -1,9 +1,12 @@
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use tracing::subscriber::set_global_default;
+use tracing_log::LogTracer;
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
     startup::run,
+    telemetry::get_subscriber,
 };
 
 pub struct TestApp {
@@ -12,10 +15,24 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+// The logger must be initialized only once.
+lazy_static::lazy_static! {
+    static ref TRACING: () = {
+        // We do not want to look at the logging for each test.
+        // Setting TEST_LOG to true will print the logs otherwise they are suppressed.
+        let filter = if std::env::var("TEST_LOG").is_ok() {"debug"} else {""};
+        let subscriber = get_subscriber("test".into(), filter.into());
+        // redirect logs to our logger and set up subscriber
+        LogTracer::init().expect("Failed to set logger");
+        set_global_default(subscriber).expect("Failed to set subscriber");
+    };
+}
+
 /// Spawns the app as a background task using a random port.
 /// This is done to avoid clashing with already existing applications.
 /// The application is spawned as a background tokio task so that we can use it in testing
 async fn spawn_app() -> TestApp {
+    lazy_static::initialize(&TRACING);
     // We create and use a random db name so that it does not clash with production or other tests
     let mut configuration = get_configuration().expect("Failed to read configuration");
     configuration.database.database_name = Uuid::new_v4().to_string();
